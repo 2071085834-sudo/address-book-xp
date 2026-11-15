@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}同簿 · 通讯录{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <header class="masthead">
+    <div class="wrap masthead-inner">
+      <a class="brand" href="{{ url_for('index') }}">
+        <span class="brand-mark" aria-hidden="true">同</span>
+        <span>同簿 <small>通讯录</small></span>
+      </a>
+      {% block header_actions %}{% endblock %}
+    </div>
+  </header>
+  <main class="wrap content">{% block content %}{% endblock %}</main>
+</body>
+</html>

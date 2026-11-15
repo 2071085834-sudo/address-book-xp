@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block header_actions %}
+  {% block excel_actions %}{% endblock %}
+{% endblock %}
+{% block content %}
+  <div class="page-heading">
+    <h1>联系人</h1>
+    <a class="button primary" href="{{ url_for('edit') }}"><span aria-hidden="true">＋</span> 新建联系人</a>
+  </div>
+  {% if message %}<div class="notice" role="status">{{ message }}</div>{% endif %}
+  {% if error %}<div class="notice error" role="alert">{{ error }}</div>{% endif %}
+  <div class="directory">
+    <section class="list-pane" aria-label="联系人列表">
+      <nav class="filters" aria-label="联系人筛选">
+        <a href="{{ url_for('index', q=query) }}" {% if view == 'all' %}aria-current="page"{% endif %}>全部 <span>{{ total }}</span></a>
+        <a href="{{ url_for('index', view='favorites', q=query) }}" {% if view == 'favorites' %}aria-current="page"{% endif %}><span aria-hidden="true">★</span> 收藏 <span>{{ favorite_count }}</span></a>
+      </nav>
+      <form method="get" class="search" action="{{ url_for('index') }}">
+        <input type="hidden" name="view" value="{{ view }}">
+        <input name="q" type="search" value="{{ query }}" placeholder="搜索姓名、单位或联系方式" aria-label="搜索联系人">
+        <button class="button secondary" type="submit">搜索</button>
+      </form>
+      {% if query %}<p class="results">找到 {{ contacts|length }} 位联系人 <a href="{{ url_for('index', view=view) }}">清除</a></p>{% endif %}
+      <ul class="contact-list">
+        {% for contact in contacts %}
+          <li>
+            <a class="contact-row" href="{{ url_for('index', id=contact.id, view=view, q=query) }}#contact-details"
+               {% if selected.id == contact.id %}aria-current="true"{% endif %}>
+              <span class="avatar tone-{{ contact.id % 5 }}" aria-hidden="true">{{ contact.name[0]|upper }}</span>
+              <span class="row-copy">
+                <strong>{{ contact.name }}</strong>
+                {% if contact.organization or contact.methods %}
+                  <small>{{ contact.organization or contact.methods[0].value }}</small>
+                {% endif %}
+              </span>
+              {% if contact.favorite %}<span class="star" aria-label="已收藏">★</span>{% endif %}
+            </a>
+          </li>
+        {% else %}
+          <li class="empty-list">
+            {% if query %}没有匹配的联系人。
+            {% elif view == 'favorites' %}还没有收藏。选中联系人后，点击收藏即可添加。
+            {% else %}还没有联系人。点击「新建联系人」添加第一位。{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+    <section class="detail-pane" id="contact-details" aria-label="联系人详情">
+      {% if selected %}
+        <div class="detail-header">
+          <span class="avatar large tone-{{ selected.id % 5 }}" aria-hidden="true">{{ selected.name[0]|upper }}</span>
+          <div class="identity">
+            <h2>{{ selected.name }}</h2>
+            {% if selected.organization %}<p>{{ selected.organization }}</p>{% endif %}
+          </div>
+        </div>
+        <div class="detail-actions">
+          <form action="{{ url_for('favorite', contact_id=selected.id) }}" method="post">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" name="favorite" value="{{ 0 if selected.favorite else 1 }}">
+            <input type="hidden" name="view" value="{{ view }}">
+            <input type="hidden" name="q" value="{{ query }}">
+            <button type="submit" class="button secondary {% if selected.favorite %}star{% endif %}">
+              <span aria-hidden="true">{{ '★' if selected.favorite else '☆' }}</span>
+              {{ '取消收藏' if selected.favorite else '收藏' }}
+            </button>
+          </form>
+          <a class="button secondary" href="{{ url_for('edit', contact_id=selected.id) }}">编辑</a>
+        </div>
+        <h3>联系方式</h3>
+        {% if selected.methods %}
+          <dl class="method-list">
+            {% for method in selected.methods %}
+              <div><dt>{{ labels[method.kind] }}</dt><dd>{{ method.value }}</dd></div>
+            {% endfor %}
+          </dl>
+        {% else %}<p class="muted">暂无联系方式</p>{% endif %}
+        {% if selected.note %}
+          <h3>备注</h3>
+          <p class="contact-note">{{ selected.note }}</p>
+        {% endif %}
+        <form action="{{ url_for('delete', contact_id=selected.id) }}" method="post" data-confirm="确定删除这位联系人吗？">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button class="button danger" type="submit">删除联系人</button>
+        </form>
+      {% else %}
+        <div class="empty-detail">
+          <span class="avatar large tone-0" aria-hidden="true">同</span>
+          <p>{{ '当前筛选没有结果。' if query or view == 'favorites' else '添加联系人后，可以在这里查看详情。' }}</p>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

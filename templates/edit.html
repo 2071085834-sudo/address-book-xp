@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ '编辑联系人' if contact.id else '新建联系人' }} · 同簿{% endblock %}
+{% macro method_row(kind='', value='') %}
+  <div class="method-row">
+    <select name="kind" aria-label="联系方式类型">
+      {% for key, label in labels.items() %}
+        <option value="{{ key }}"{% if key == kind %} selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <input name="value" value="{{ value }}" maxlength="{{ limits.method }}" placeholder="填写联系方式" aria-label="联系方式内容">
+    <button class="button secondary" type="button" data-remove aria-label="移除这项联系方式">移除</button>
+  </div>
+{% endmacro %}
+{% block content %}
+  <div class="editor">
+    <a class="back" href="{{ url_for('index', id=contact.id) }}">← 返回通讯录</a>
+    <h1>{{ '编辑联系人' if contact.id else '新建联系人' }}</h1>
+    {% if error %}<div class="notice error" role="alert">{{ error }}</div>{% endif %}
+    <form class="editor-form" method="post">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="field-pair">
+        <label>姓名 <span class="required">*</span>
+          <input name="name" value="{{ contact.name }}" maxlength="{{ limits.name }}" required>
+        </label>
+        <label>单位
+          <input name="organization" value="{{ contact.organization }}" maxlength="{{ limits.organization }}">
+        </label>
+      </div>
+      <fieldset>
+        <legend>联系方式</legend>
+        <div data-methods data-max="{{ max_methods }}">
+          {% for item in contact.methods %}
+            {{ method_row(item.kind, item.value) }}
+          {% else %}
+            {{ method_row() }}
+          {% endfor %}
+        </div>
+        <template id="method-template">{{ method_row() }}</template>
+        <button class="button secondary" type="button" data-add-method>＋ 添加联系方式</button>
+      </fieldset>
+      <label>备注 <textarea name="note" maxlength="{{ limits.note }}" rows="3">{{ contact.note }}</textarea></label>
+      <div class="detail-actions">
+        <button class="button primary" type="submit">保存联系人</button>
+        <a class="button secondary" href="{{ url_for('index', id=contact.id) }}">取消</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}
