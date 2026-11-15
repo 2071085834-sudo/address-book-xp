@@ -103,7 +103,6 @@ def create_app(config=None):
         contact["methods"] = [
             {"kind": kind, "value": value.strip()}
             for kind, value in zip(kinds, values)
-            if value.strip()
         ]
         try:
             if len(kinds) != len(values):

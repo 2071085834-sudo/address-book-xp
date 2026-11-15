@@ -7,7 +7,7 @@
         <option value="{{ key }}"{% if key == kind %} selected{% endif %}>{{ label }}</option>
       {% endfor %}
     </select>
-    <input name="value" value="{{ value }}" maxlength="{{ limits.method }}" placeholder="填写联系方式" aria-label="联系方式内容">
+    <input name="value" value="{{ value }}" placeholder="填写联系方式" aria-label="联系方式内容" aria-describedby="method-limit">
     <button class="button secondary" type="button" data-remove aria-label="移除这项联系方式">移除</button>
   </div>
 {% endmacro %}
@@ -28,6 +28,7 @@
       </div>
       <fieldset>
         <legend>联系方式</legend>
+        <p class="field-hint" id="method-limit">每项最多 {{ limits.method }} 个字符。</p>
         <div data-methods data-max="{{ max_methods }}">
           {% for item in contact.methods %}
             {{ method_row(item.kind, item.value) }}
