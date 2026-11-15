@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}导入 Excel · 同簿{% endblock %}
+{% block content %}
+  <section class="editor">
+    <a class="back" href="{{ url_for('index') }}">← 返回通讯录</a>
+    <h1>导入 Excel</h1>
+    {% if error %}<div class="notice error" role="alert">{{ error }}</div>{% endif %}
+    <form class="editor-form" method="post" enctype="multipart/form-data">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <p class="muted">使用 .xlsx 文件。第一行为表头，每位联系人占一行。导入会新增联系人，已有记录会保留。</p>
+      <label>选择 Excel 文件
+        <input type="file" name="workbook" accept=".xlsx" required>
+      </label>
+      <div class="detail-actions">
+        <button class="button primary" type="submit">导入联系人</button>
+        <a class="button secondary" href="{{ url_for('download_template') }}">下载模板</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}
