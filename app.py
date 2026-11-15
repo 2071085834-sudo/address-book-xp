@@ -2,10 +2,11 @@ import os
 import secrets
 from pathlib import Path
 
+import click
 from flask import Flask, abort, redirect, render_template, request, send_file, session, url_for
 
 from contacts import FIELD_LIMITS, MAX_METHODS, METHOD_LABELS, validate_contact
-from excel import CONTENT_TYPE, make_workbook, read_workbook
+from excel import CONTENT_TYPE, MAX_ROWS, make_workbook, read_workbook
 from store import all_contacts, database, init_storage, save_contact
 
 
@@ -20,7 +21,7 @@ MESSAGES = {
 def create_app(config=None):
     app = Flask(__name__)
     app.config.from_mapping(
-        DATABASE=str(Path(app.instance_path) / "contacts.sqlite3"),
+        DATABASE=os.environ.get("ADDRESS_BOOK_DB") or str(Path(app.instance_path) / "contacts.sqlite3"),
         SECRET_KEY=os.environ.get("ADDRESS_BOOK_SECRET") or secrets.token_hex(32),
         MAX_CONTENT_LENGTH=4 * 1024 * 1024,
     )
@@ -72,7 +73,7 @@ def create_app(config=None):
             selected = visible[0]
         message = MESSAGES.get(request.args.get("status"))
         imported = request.args.get("imported", type=int)
-        if imported is not None and 0 < imported <= 5000:
+        if imported is not None and 0 < imported <= MAX_ROWS:
             message = f"已导入 {imported} 位联系人。"
         return render_template(
             "index.html", contacts=visible, selected=selected, query=query,
@@ -172,6 +173,32 @@ def create_app(config=None):
             for contact in contacts:
                 save_contact(connection, contact)
         return redirect(url_for("index", imported=len(contacts)), code=303)
+
+    @app.cli.command("seed-demo")
+    def seed_demo():
+        """Populate an empty database with fictional contacts for a demo."""
+        connection = database()
+        samples = [
+            ("林知远", "软件工程学习小组", True,
+             [("phone", "010-5550-0101"), ("email", "zhiyuan@example.test")],
+             "负责整理课程项目的会议记录。"),
+            ("周予安", "视觉设计社", False,
+             [("email", "yuan@example.test"), ("social", "@yuan_demo")], ""),
+            ("陈一禾", "软件工程学习小组", True,
+             [("phone", "010-5550-0102"), ("phone", "010-5550-0103"),
+              ("email", "yihe@example.test")], "两条示例电话用于演示 Excel 分列。"),
+            ("许清禾", "读书会", False, [("address", "示例路 1 号")], ""),
+        ]
+        with connection:
+            connection.execute("BEGIN IMMEDIATE")
+            if connection.execute("SELECT 1 FROM contacts LIMIT 1").fetchone():
+                raise click.ClickException("通讯录已有联系人，请使用新的演示数据库。")
+            for name, organization, favorite, methods, note in samples:
+                save_contact(connection, validate_contact(dict(
+                    name=name, organization=organization, favorite=favorite, note=note,
+                    methods=[dict(kind=kind, value=value) for kind, value in methods],
+                )))
+        click.echo("已添加 4 位虚构演示联系人。")
 
     return app
 
