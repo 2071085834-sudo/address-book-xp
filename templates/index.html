@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block header_actions %}
-  {% block excel_actions %}{% endblock %}
+  <nav class="toolbar" aria-label="Excel 操作">
+    <a class="button secondary" href="{{ url_for('import_excel') }}">导入 Excel</a>
+    <a class="button secondary" href="{{ url_for('export_excel') }}">导出 Excel</a>
+  </nav>
 {% endblock %}
 {% block content %}
   <div class="page-heading">

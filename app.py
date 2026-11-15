@@ -2,9 +2,10 @@ import os
 import secrets
 from pathlib import Path
 
-from flask import Flask, abort, redirect, render_template, request, session, url_for
+from flask import Flask, abort, redirect, render_template, request, send_file, session, url_for
 
 from contacts import FIELD_LIMITS, MAX_METHODS, METHOD_LABELS, validate_contact
+from excel import CONTENT_TYPE, make_workbook, read_workbook
 from store import all_contacts, database, init_storage, save_contact
 
 
@@ -69,11 +70,15 @@ def create_app(config=None):
         selected = next((item for item in visible if item["id"] == selected_id), None)
         if selected is None and visible:
             selected = visible[0]
+        message = MESSAGES.get(request.args.get("status"))
+        imported = request.args.get("imported", type=int)
+        if imported is not None and 0 < imported <= 5000:
+            message = f"已导入 {imported} 位联系人。"
         return render_template(
             "index.html", contacts=visible, selected=selected, query=query,
             view="favorites" if favorites else "all", total=len(contacts),
             favorite_count=sum(contact["favorite"] for contact in contacts),
-            message=MESSAGES.get(request.args.get("status")), error=None,
+            message=message, error=None,
         )
 
     @app.route("/contacts/new", methods=["GET", "POST"])
@@ -136,6 +141,37 @@ def create_app(config=None):
             q=request.form.get("q", ""),
             status="favorite" if request.form.get("favorite") == "1" else "unfavorite",
         ), code=303)
+
+    @app.get("/excel/export")
+    def export_excel():
+        return send_file(
+            make_workbook(all_contacts()), mimetype=CONTENT_TYPE,
+            as_attachment=True, download_name="contacts.xlsx", max_age=0,
+        )
+
+    @app.get("/excel/template")
+    def download_template():
+        return send_file(
+            make_workbook([]), mimetype=CONTENT_TYPE,
+            as_attachment=True, download_name="contacts-template.xlsx", max_age=0,
+        )
+
+    @app.route("/excel/import", methods=["GET", "POST"])
+    def import_excel():
+        if request.method == "GET":
+            return render_template("import.html")
+        file = request.files.get("workbook")
+        try:
+            if file is None or not (file.filename or "").lower().endswith(".xlsx"):
+                raise ValueError("请选择一个 .xlsx 文件。")
+            contacts = read_workbook(file.stream)
+        except ValueError as error:
+            return render_template("import.html", error=str(error)), 400
+        connection = database()
+        with connection:
+            for contact in contacts:
+                save_contact(connection, contact)
+        return redirect(url_for("index", imported=len(contacts)), code=303)
 
     return app
 
