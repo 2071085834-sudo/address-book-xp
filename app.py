@@ -124,7 +124,10 @@ def create_app(config=None):
             result = connection.execute("DELETE FROM contacts WHERE id = ?", (contact_id,))
             if not result.rowcount:
                 abort(404)
-        return redirect(url_for("index", status="deleted"), code=303)
+        return redirect(url_for(
+            "index", view=request.form.get("view", "all"),
+            q=request.form.get("q", ""), status="deleted",
+        ), code=303)
 
     @app.post("/contacts/<int:contact_id>/favorite")
     def favorite(contact_id):
